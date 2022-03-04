@@ -66,14 +66,7 @@ func startt_xsocket5_server(address string) {
 			client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) //响应客户端连接成功
 			log.Println("start to transfer data")
 			go func() {
-				client.Forward(server, func(buffer []byte) []byte {
-					record := Tls_Shake_Record{}
-					if record.Parse(buffer) {
-						record.Restore()
-						return record.toByte()
-					}
-					return nil
-				})
+				client.Forward(server, nil)
 				server.Close()
 			}()
 			server.Forward(client, nil)
