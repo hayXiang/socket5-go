@@ -10,7 +10,7 @@ func start_reverse_xsocket5_client(address string) {
 	for {
 		__conn, error := net.Dial("tcp", address)
 		connect := MyConnect{}
-		connect.conn = __conn
+		connect._conn = __conn
 		if error != nil {
 			log.Println(error)
 			log.Println("sleep 1 sec to retry")
@@ -18,42 +18,49 @@ func start_reverse_xsocket5_client(address string) {
 			continue
 		}
 		log.Printf("connected:%s\n", connect.ToString())
-		connect.Write(FLAG_CONNECT_COMMAND)
+		connect.Write(XSOCKS_PROTOCAL_CLIENT_REGISTER)
 		command_loop(connect, address)
 	}
 }
 
-func create_proxy_channel(proxy_address string, uuid []byte, address string, flag []byte, process func(buffer []byte) []byte) {
-	log.Printf("dest %s\n", proxy_address)
+func create_proxy_channel(address string, protocal XsocktCreateProxyProtocal, process func(buffer []byte) []byte) {
+	log.Printf("dest %s\n", protocal._body._address)
 	connTimeout := 5 * time.Second
-	__conn, err := net.DialTimeout("tcp", address, connTimeout)
-	client := MyConnect{}
-	client.conn = __conn
-	client.uuid = string(uuid)
-	client.address = address
-	defer client.Close()
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Printf("[cnn]connect: %s\n", client.ToString())
-		client.Write(uuid)
-		_, err := client.Write(flag)
+	client_chan := make(chan MyConnect)
+	go func() {
+		__conn, err := net.DialTimeout("tcp", address, connTimeout)
+		connect := MyConnect{}
+		connect._conn = __conn
+		connect._uuid = string(protocal._body._uuid)
+		connect._address = address
 		if err != nil {
 			log.Println(err)
+		} else {
+			log.Printf("[cnn]connect: %s\n", connect.ToString())
+			_, err := connect.Write(protocal.ToByte())
+			if err != nil {
+				log.Println(err)
+			}
 		}
-	}
+		if err == nil {
+			client_chan <- connect
+		} else {
+			client_chan <- MyConnect{}
+		}
+	}()
+
 	server_chan := make(chan MyConnect)
 	go func() {
-		log.Printf("[begin]dial to %s", proxy_address)
-		__conn, err := net.DialTimeout("tcp", proxy_address, connTimeout)
+		log.Printf("[begin]dial to %s", protocal._body._address)
+		__conn, err := net.DialTimeout("tcp", string(protocal._body._address), connTimeout)
 		connect := MyConnect{}
-		connect.conn = __conn
-		connect.uuid = string(uuid)
-		connect.address = proxy_address
+		connect._conn = __conn
+		connect._uuid = string(protocal._body._uuid)
+		connect._address = string(protocal._body._address)
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("[end]dial to %s", proxy_address)
+		log.Printf("[end]dial to %s", protocal._body._address)
 		if err == nil {
 			server_chan <- connect
 		} else {
@@ -61,6 +68,8 @@ func create_proxy_channel(proxy_address string, uuid []byte, address string, fla
 		}
 	}()
 	server := <-server_chan
+	client := <-client_chan
+	defer client.Close()
 	go func() {
 		client.Forward(server, process)
 		server.Close()
@@ -80,39 +89,23 @@ func command_loop(connect MyConnect, address string) {
 			log.Println(err)
 			return
 		}
-		log.Println(buffer[0:size])
+
 		for i := 0; i < size; i++ {
 			data[len] = buffer[i]
 			len++
 		}
 
-		if data[len-2] == FLAG_CONNECT_PROXY[0] && data[len-1] == FLAG_CONNECT_PROXY[1] {
-			uuid_len := int(data[len-3])
-			uuid := data[len-3-uuid_len : len-3]
-			info_len := int(data[len-3-uuid_len-1])
-			index := len - 3 - uuid_len - 1 - info_len
-			info := data[index : index+info_len]
-
-			go create_proxy_channel(proxy_url(info), uuid, address, FLAG_CONNECT_PROXY, func(buffer []byte) []byte {
+		if start, protocal_length, _ := parse_protocal(data); start != -1 && protocal_length != -1 {
+			protocal := XsocktCreateProxyProtocal{}
+			protocal.Parse(data[start : start+protocal_length])
+			go create_proxy_channel(address, protocal, func(buffer []byte) []byte {
 				record := Tls_Shake_Record{}
 				if record.Parse(buffer) {
 					record.Restore()
-					return record.toByte()
+					return record.ToByte()
 				}
 				return nil
 			})
-			data = make([]byte, 10240)
-			len = 0
-			continue
-		}
-
-		if data[len-2] == FLAG_CONNECT_PORT_FORWRD[0] && data[len-1] == FLAG_CONNECT_PORT_FORWRD[1] {
-			uuid_len := int(data[len-3])
-			uuid := data[len-3-uuid_len : len-3]
-			info_len := int(data[len-3-uuid_len-1])
-			index := len - 3 - uuid_len - 1 - info_len
-			info := data[index : index+info_len]
-			go create_proxy_channel(string(info), uuid, string(address), FLAG_CONNECT_PORT_FORWRD, nil)
 			data = make([]byte, 10240)
 			len = 0
 			continue

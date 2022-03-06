@@ -98,7 +98,7 @@ func (record *Tls_Shake_Record) Modify(new_sni_name string) bool {
 	return false
 }
 
-func (record *Tls_Shake_Record) toByte() []byte {
+func (record *Tls_Shake_Record) ToByte() []byte {
 	data := make([]byte, record._length+1+2+2)
 	index := 0
 	//record

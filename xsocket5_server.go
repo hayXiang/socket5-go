@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
-	"fmt"
 	"log"
 	"net"
 )
@@ -18,7 +16,7 @@ func startt_xsocket5_server(address string) {
 	for {
 		__conn, con_error := listen.Accept()
 		client := MyConnect{}
-		client.conn = __conn
+		client._conn = __conn
 		if con_error != nil {
 			log.Println("error")
 			return
@@ -44,21 +42,12 @@ func startt_xsocket5_server(address string) {
 				log.Println(err)
 				return
 			}
-			b := buffer
-			var host string
-			switch b[3] {
-			case 0x01: //IP V4
-				host = net.IP(b[4:8]).String()
-			case 0x03: //域名
-				host = string(b[5 : len-2]) //b[4]表示域名的长度
-			case 0x04: //IP V6
-				host = net.IP(b[4:20]).String()
-			}
-			port := fmt.Sprintf("%d", binary.BigEndian.Uint16(b[len-2:len]))
-			log.Printf("dest %s:%s\n", host, port)
-			__conn, err := net.Dial("tcp", net.JoinHostPort(host, port))
+
+			dest := sock5_remote_address(buffer[:len])
+			log.Printf("dest %s\n", dest)
+			__conn, err := net.Dial("tcp", dest)
 			server := MyConnect{}
-			server.conn = __conn
+			server._conn = __conn
 			if err != nil {
 				log.Println(err)
 				return

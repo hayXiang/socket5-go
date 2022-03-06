@@ -16,29 +16,30 @@ type Interface_MyConnect interface {
 }
 
 type MyConnect struct {
-	conn      net.Conn
-	count     int
-	is_closed bool
-	uuid      string
-	address   string
+	_conn               net.Conn
+	_count              int
+	_is_closed          bool
+	_uuid               string
+	_address            string
+	_reserved_read_data []byte
 }
 
 func (_self_ *MyConnect) Forward(destination MyConnect, process func([]byte) []byte) {
-	if _self_.conn == nil || destination.conn == nil {
+	if _self_._conn == nil || destination._conn == nil {
 		return
 	}
 	log.Printf("[start] transfer data,%s\n", _self_.ToString())
-	defer log.Printf("[end] transfer data, %s, count = %d\n", _self_.ToString(), _self_.count)
-	_self_.count = 0
+	defer log.Printf("[end] transfer data, %s, count = %d\n", _self_.ToString(), _self_._count)
+	_self_._count = 0
 	for {
 		buf := make([]byte, 1024)
-		size, err := _self_.conn.Read(buf)
+		size, err := _self_._conn.Read(buf)
 		if err != nil {
 			log.Printf("read over,%s,error=%s\n", _self_.ToString(), err.Error())
 			_self_.Close()
 			break
 		}
-		_self_.count += size
+		_self_._count += size
 		if size == 4 && binary.BigEndian.Uint32(buf[0:size]) == binary.BigEndian.Uint32(FLAG_QUIT) {
 			log.Printf("read force quit,%s", _self_.ToString())
 			break
@@ -58,41 +59,40 @@ func (_self_ *MyConnect) Forward(destination MyConnect, process func([]byte) []b
 }
 
 func (_self_ *MyConnect) Read(buf []byte) (int, error) {
-	if _self_.conn == nil {
+	if _self_._conn == nil {
 		return -1, nil
 	}
-	return _self_.conn.Read(buf)
+	return _self_._conn.Read(buf)
 }
 
 func (_self_ *MyConnect) Write(buf []byte) (int, error) {
-	if _self_.conn == nil {
+	if _self_._conn == nil {
 		return -1, nil
 	}
-
-	return _self_.conn.Write(buf)
+	return _self_._conn.Write(buf)
 }
 
 func (_self_ *MyConnect) Close() error {
-	if _self_.conn == nil {
+	if _self_._conn == nil {
 		return nil
 	}
 
-	if _self_.is_closed {
+	if _self_._is_closed {
 		return nil
 	}
-	_self_.is_closed = true
+	_self_._is_closed = true
 	log.Printf("server close : %s\n", _self_.ToString())
-	return _self_.conn.Close()
+	return _self_._conn.Close()
 }
 
 func (_self_ *MyConnect) ToString() string {
-	if _self_.conn == nil {
+	if _self_._conn == nil {
 		return ""
 	}
 
-	if _self_.address == "" || _self_.uuid == "" {
-		return fmt.Sprintf("%s->%s", _self_.conn.LocalAddr().String(), _self_.conn.RemoteAddr().String())
+	if _self_._address == "" || _self_._uuid == "" {
+		return fmt.Sprintf("%s->%s", _self_._conn.LocalAddr().String(), _self_._conn.RemoteAddr().String())
 	} else {
-		return fmt.Sprintf("%s->%s, host=%s, uuid=%s", _self_.conn.LocalAddr().String(), _self_.conn.RemoteAddr().String(), _self_.address, _self_.uuid)
+		return fmt.Sprintf("%s->%s, host=%s, uuid=%s", _self_._conn.LocalAddr().String(), _self_._conn.RemoteAddr().String(), _self_._address, _self_._uuid)
 	}
 }
