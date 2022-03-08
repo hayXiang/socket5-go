@@ -12,9 +12,9 @@
 ./xsocks5 ${address} -----address 是你的带公网的服务器地址，可以是软路由，PC。比如www.xsocks5.com:5201   
 
 ## 案例：
-### goorm
-1. goorm 的容器运行， ./xsocks5 www.xsocks5.com:5201 
+### goorm   
+1. goorm 的容器运行， ./xsocks5 www.xsocks5.com:5201  
 2. 家中路由器运行， ./xsocks5 -L -R -A ":5201" -S ":8888" （默认开启了9999->22的端口映射 ）   
-3. 连通后，就可以在路由器上操作
-   3.1 curl --socks5 127.0.0.1:8888 https://www.xxxx.com 
-   3.2 ssh 127.0.0.1 -p 9999 
+3. 连通后，就可以在路由器上操作     
+   3.1 curl --socks5 127.0.0.1:8888 https://www.xxxx.com    
+   3.2 ssh 127.0.0.1 -p 9999  
