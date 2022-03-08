@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-func start_reverse_xsocket5_client(address string) {
+func start_reverse_xsocket5_client(address *string) {
 	for {
-		__conn, error := net.Dial("tcp", address)
+		__conn, error := net.Dial("tcp", *address)
 		connect := MyConnect{}
 		connect._conn = __conn
 		if error != nil {
@@ -23,16 +23,16 @@ func start_reverse_xsocket5_client(address string) {
 	}
 }
 
-func create_proxy_channel(address string, protocal XsocktCreateProxyProtocal, process func(buffer []byte) []byte) {
+func create_proxy_channel(address *string, protocal *XsocktCreateProxyProtocal, process func(buffer []byte) []byte) {
 	log.Printf("dest %s\n", protocal._body._address)
 	connTimeout := 5 * time.Second
 	client_chan := make(chan MyConnect)
 	go func() {
-		__conn, err := net.DialTimeout("tcp", address, connTimeout)
+		__conn, err := net.DialTimeout("tcp", *address, connTimeout)
 		connect := MyConnect{}
 		connect._conn = __conn
 		connect._uuid = string(protocal._body._uuid)
-		connect._address = address
+		connect._address = *address
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -71,14 +71,14 @@ func create_proxy_channel(address string, protocal XsocktCreateProxyProtocal, pr
 	client := <-client_chan
 	defer client.Close()
 	go func() {
-		client.Forward(server, process)
+		client.Forward(&server, process)
 		server.Close()
 	}()
-	server.Forward(client, nil)
+	server.Forward(&client, nil)
 
 }
 
-func command_loop(connect MyConnect, address string) {
+func command_loop(connect MyConnect, address *string) {
 	defer connect.Close()
 	len := 0
 	data := make([]byte, 10240)
@@ -98,7 +98,7 @@ func command_loop(connect MyConnect, address string) {
 		if start, protocal_length, _ := parse_protocal(data); start != -1 && protocal_length != -1 {
 			protocal := XsocktCreateProxyProtocal{}
 			protocal.Parse(data[start : start+protocal_length])
-			go create_proxy_channel(address, protocal, func(buffer []byte) []byte {
+			go create_proxy_channel(address, &protocal, func(buffer []byte) []byte {
 				record := Tls_Shake_Record{}
 				if record.Parse(buffer) {
 					record.Restore()

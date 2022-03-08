@@ -24,7 +24,7 @@ type MyConnect struct {
 	_reserved_read_data []byte
 }
 
-func (_self_ *MyConnect) Forward(destination MyConnect, process func([]byte) []byte) {
+func (_self_ *MyConnect) Forward(destination *MyConnect, process func([]byte) []byte) {
 	if _self_._conn == nil || destination._conn == nil {
 		return
 	}
@@ -39,8 +39,9 @@ func (_self_ *MyConnect) Forward(destination MyConnect, process func([]byte) []b
 			_self_.Close()
 			break
 		}
+		print(string(buf[:size]))
 		_self_._count += size
-		if size == 4 && binary.BigEndian.Uint32(buf[0:size]) == binary.BigEndian.Uint32(FLAG_QUIT) {
+		if size == 4 && binary.BigEndian.Uint32(buf[0:size]) == binary.BigEndian.Uint32(XSOCKS_PROTOCAL_FORCE_QUIT) {
 			log.Printf("read force quit,%s", _self_.ToString())
 			break
 		}

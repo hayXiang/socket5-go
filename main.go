@@ -54,13 +54,13 @@ func main() {
 
 	if is_server_mode {
 		if is_reverse_mode {
-			start_reverse_xsocket5_server(sock5_address, username, password, address)
+			start_reverse_xsocket5_server(&sock5_address, &username, &password, &address)
 		} else {
-			startt_xsocket5_server(address)
+			start_xsocket5_server(&address)
 		}
 	} else {
 		if is_reverse_mode {
-			start_reverse_xsocket5_client(address)
+			start_reverse_xsocket5_client(&address)
 		} else {
 			log.Panic("not support yet")
 		}

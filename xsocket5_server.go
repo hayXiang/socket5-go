@@ -5,9 +5,9 @@ import (
 	"net"
 )
 
-func startt_xsocket5_server(address string) {
-	log.Println("listen on " + address)
-	listen, error := net.Listen("tcp", address)
+func start_xsocket5_server(address *string) {
+	log.Println("listen on " + *address)
+	listen, error := net.Listen("tcp", *address)
 	if error != nil {
 		log.Println(error)
 		return
@@ -43,7 +43,7 @@ func startt_xsocket5_server(address string) {
 				return
 			}
 
-			dest := sock5_remote_address(buffer[:len])
+			dest := sock5_destination_address(buffer[:len])
 			log.Printf("dest %s\n", dest)
 			__conn, err := net.Dial("tcp", dest)
 			server := MyConnect{}
@@ -55,10 +55,10 @@ func startt_xsocket5_server(address string) {
 			client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) //响应客户端连接成功
 			log.Println("start to transfer data")
 			go func() {
-				client.Forward(server, nil)
+				client.Forward(&server, nil)
 				server.Close()
 			}()
-			server.Forward(client, nil)
+			server.Forward(&client, nil)
 		}()
 	}
 }

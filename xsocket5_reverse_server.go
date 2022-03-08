@@ -9,10 +9,10 @@ import (
 var connect_count_mutex sync.Mutex
 var connect_count uint32 = 0
 var mutex sync.Mutex
-var connect_map = make(map[string]MyConnect, 1024)
+var connect_map = make(map[string]*MyConnect, 1024)
 var connect_ready_map = make(map[string]chan bool, 1024)
 
-func wait_for_connect(conn MyConnect) {
+func wait_for_connect(conn *MyConnect) {
 	log.Printf("[begin]wait for connect, %s\n", conn.ToString())
 	defer func() {
 		log.Printf("[end]wait for connect, %s\n", conn.ToString())
@@ -30,7 +30,6 @@ func wait_for_connect(conn MyConnect) {
 			data[size] = buffer[i]
 			size++
 		}
-		log.Println(buffer[0:buf_size])
 		begin, protocal_length, protocal_type := parse_protocal(data)
 		if begin == -1 || protocal_length == -1 {
 			log.Println(data[0:size])
@@ -39,16 +38,16 @@ func wait_for_connect(conn MyConnect) {
 
 		if protocal_type == int(XSOCKS_PROTOCAL_TYPE_REGIST) {
 			mutex.Lock()
-			connect_map["cmd"] = conn
+			connect_map[XSOCKS_PROTOCAL_UUID_COMMAND] = conn
 			mutex.Unlock()
 			go func() {
 				for {
 					buffer := make([]byte, 1024)
 					_, err := conn.Read(buffer)
 					if err != nil {
-						log.Printf("cmd connect close,err:%s\n", err.Error())
+						log.Printf("cmd connect close,err:%s\n", err)
 						mutex.Lock()
-						delete(connect_map, "cmd")
+						delete(connect_map, XSOCKS_PROTOCAL_UUID_COMMAND)
 						mutex.Unlock()
 						return
 					}
@@ -74,17 +73,18 @@ func wait_for_connect(conn MyConnect) {
 	}
 }
 
-func start_reverse_xsocket5_server(sock5_address string, username string, password string, address string) {
+func start_reverse_xsocket5_server(sock5_address *string, username *string, password *string, address *string) {
 	local_address := ":9999"
 	remote_address := ":22"
 	go sock5(sock5_address, username, password)
-	go port_forward(local_address, remote_address)
-	listen, err := net.Listen("tcp", address)
+	go port_forward(&local_address, remote_address)
+	go nat(":28888")
+	listen, err := net.Listen("tcp", *address)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	log.Printf("listen on %s, socket5 on %s, port_forward on [%s->%s]", address, sock5_address, local_address, remote_address)
+	log.Printf("listen on %s, socket5 on %s, port_forward on [%s->%s]", *address, *sock5_address, local_address, remote_address)
 	defer listen.Close()
 	for {
 		__conn, err := listen.Accept()
@@ -94,6 +94,6 @@ func start_reverse_xsocket5_server(sock5_address string, username string, passwo
 			log.Println(err)
 			return
 		}
-		go wait_for_connect(conn)
+		go wait_for_connect(&conn)
 	}
 }

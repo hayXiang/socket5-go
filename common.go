@@ -1,20 +1,65 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
+	"net"
 	"time"
 )
 
-type MyError struct {
-	msg string
+func process(local_address *string, getRemoteAddress func(client *MyConnect) (string, error), onConnectReady func(client *MyConnect), processClientData func([]byte) []byte) error {
+	listen, _err := net.Listen("tcp", *local_address)
+	if _err != nil {
+		log.Println(_err)
+		return _err
+	}
+	defer listen.Close()
+	for {
+		__client, _err := listen.Accept()
+		if _err != nil {
+			log.Println(_err)
+			return _err
+		}
+		client := MyConnect{}
+		client._conn = __client
+		go func() {
+			defer client.Close()
+			log.Printf("receive a client request,%s\n", client.ToString())
+			if getRemoteAddress == nil {
+				log.Println("no onClientReady")
+				return
+			}
+			address, _err := getRemoteAddress(&client)
+			if _err != nil {
+				log.Println(_err)
+				return
+			}
+			process_connect(&address, &client, onConnectReady, processClientData)
+		}()
+	}
 }
 
-func (err *MyError) Error() string {
-	return err.msg
-}
+func process_connect(address *string, client *MyConnect, onConnectReady func(client *MyConnect), processClientData func([]byte) []byte) error {
+	//send host and port to remote
+	mutex.Lock()
+	command_connect, ok := connect_map[XSOCKS_PROTOCAL_UUID_COMMAND]
+	mutex.Unlock()
+	if !ok {
+		log.Println("no cmd connect")
+		return errors.New("no cmd connect")
+	}
 
-func process_connect(command_connect MyConnect, client MyConnect, protocal XsocktCreateProxyProtocal, onConnectReady func(), processClientData func([]byte) []byte) error {
-	uuid := string(protocal._body._uuid)
+	connect_count_mutex.Lock()
+	connect_count++
+	connect_count_mutex.Unlock()
+
+	uuid := fmt.Sprintf("%d", connect_count)
+	protocal := XsocktCreateProxyProtocal{}
+	protocal._body = XsocktCreateProxyProtocalBoby{}
+	protocal._body._uuid = []byte(uuid)
+	protocal._body._address = []byte(*address)
+
 	_, err := command_connect.Write(protocal.ToByte())
 	if err != nil {
 		log.Println(err)
@@ -40,7 +85,7 @@ func process_connect(command_connect MyConnect, client MyConnect, protocal Xsock
 	is_connect_ok = <-ready
 	if !is_connect_ok {
 		log.Printf("wait for connect timeout,%s", uuid)
-		return &MyError{msg: "wait for connect timeout"}
+		return errors.New("wait for connect timeout")
 	}
 	mutex.Lock()
 	connect := connect_map[uuid]
@@ -48,7 +93,7 @@ func process_connect(command_connect MyConnect, client MyConnect, protocal Xsock
 	defer connect.Close()
 	mutex.Unlock()
 	if onConnectReady != nil {
-		onConnectReady()
+		onConnectReady(client)
 	}
 	if connect._reserved_read_data != nil && len(connect._reserved_read_data) > 0 {
 		client.Write(connect._reserved_read_data)

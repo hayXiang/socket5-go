@@ -64,8 +64,8 @@ func (record *Tls_Shake_Record) Restore() bool {
 	return true
 }
 
-func (record *Tls_Shake_Record) Modify(new_sni_name string) bool {
-	if new_sni_name == "" {
+func (record *Tls_Shake_Record) Modify(new_sni_name *string) bool {
+	if new_sni_name == nil {
 		return false
 	}
 
@@ -81,7 +81,7 @@ func (record *Tls_Shake_Record) Modify(new_sni_name string) bool {
 	if sni_extension != nil {
 		var changed_length int = 0
 		old_sni_name := sni_extension._content[5:]
-		changed_length += sni_extension.Modify_sni([]byte(new_sni_name))
+		changed_length += sni_extension.Modify_sni([]byte(*new_sni_name))
 		custom_extension := Tls_Shake_Hand_Layer_extension{}
 		custom_extension._type = 65282
 		custom_extension._length = uint16(len(old_sni_name))
