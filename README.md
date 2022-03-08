@@ -5,10 +5,10 @@
 3.支持TLS协议的SNI擦拭和篡改  
 
 ## 使用方法：
-#### 1.服务端 （运行在不带公网的VPS上，比如google的cloude shell）
+#### 1.服务端 (运行在带公网的机器上，比如软路由，自家的PC)
 ./xsocks5 -L -R -A ":5201" -S ":8888"
 
-#### 2.客户端  (运行在带公网的服务器上，比如软路由，自家的PC)
+#### 2.客户端  （运行在不带公网的VPS上，比如google的cloude shell）
 ./xsocks5 ${address} -----address 是你的带公网的服务器地址，可以是软路由，PC。比如www.xsocks5.com:5201   
 
 ## 案例：
