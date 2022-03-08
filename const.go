@@ -1,3 +1,0 @@
-package main
-
-var FLAG_QUIT = []byte{0x95, 0x27, 0x27, 0x95}
