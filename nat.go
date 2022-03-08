@@ -49,8 +49,11 @@ func getOriginalDestination(c net.Conn) (destination string, newConn net.Conn, e
 	return
 }
 
-func nat(address string) {
-	process(&address, func(client *MyConnect) (string, error) {
+func nat_inbound(address *string) {
+	host, port := parseHostAndPort(address)
+	bind_address := fmt.Sprintf("%s:%s", host, port)
+	log.Printf("[nat] listen on:%s\n", bind_address)
+	process(&bind_address, func(client *MyConnect) (string, error) {
 		destination, new_connect, _ := getOriginalDestination(client._conn)
 		client._conn = new_connect
 		return destination, nil

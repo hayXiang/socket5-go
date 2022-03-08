@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -108,4 +109,24 @@ func process_connect(address *string, client *MyConnect, onConnectReady func(cli
 	delete(connect_ready_map, uuid)
 	mutex.Unlock()
 	return nil
+}
+
+func parseUserAndPassword(address *string) (string, string) {
+	index_split := strings.Index(*address, ":")
+	if index_split != -1 {
+		return (*address)[0:index_split], (*address)[index_split+1:]
+	}
+	return "", ""
+}
+
+func parseHostAndPort(address *string) (string, string) {
+	index_split := strings.Index(*address, ":")
+	if index_split != -1 {
+		if index_split == 0 {
+			return "0.0.0.0", (*address)[1:]
+		} else {
+			return (*address)[0:index_split], (*address)[index_split+1:]
+		}
+	}
+	return "127.0.0.1", *address
 }

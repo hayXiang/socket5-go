@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
 var SNI_MASK_NAME string = "emby.haycker.com"
@@ -94,9 +95,33 @@ func sock5_auth(client *MyConnect, username *string, password *string) (string, 
 	return sock5_destination_address(buf[0:size]), nil
 }
 
-func sock5(address *string, username *string, password *string) {
-	process(address, func(client *MyConnect) (string, error) {
-		return sock5_auth(client, username, password)
+type Socket5Uri struct {
+	host     string
+	port     string
+	username string
+	password string
+}
+
+func ParseSocket5Uri(address *string, uri *Socket5Uri) {
+	index_split := strings.LastIndex(*address, "@")
+	if index_split != -1 {
+		username_password := (*address)[0:index_split]
+		sockets_bind_address := (*address)[index_split+1:]
+		uri.username, uri.password = parseHostAndPort(&username_password)
+		uri.host, uri.port = parseHostAndPort(&sockets_bind_address)
+	} else {
+		uri.host, uri.port = parseHostAndPort(address)
+	}
+
+}
+
+func socks5_inbound(address *string) {
+	uri := Socket5Uri{}
+	ParseSocket5Uri(address, &uri)
+	bind_address := fmt.Sprintf("%s:%s", uri.host, uri.port)
+	log.Printf("[socks5] listen on:%s\n", bind_address)
+	process(&bind_address, func(client *MyConnect) (string, error) {
+		return sock5_auth(client, &uri.username, &uri.password)
 	}, func(client *MyConnect) {
 		client.Write([]byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}, func(buffer []byte) []byte {

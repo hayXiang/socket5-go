@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -73,18 +74,15 @@ func wait_for_connect(conn *MyConnect) {
 	}
 }
 
-func start_reverse_xsocket5_server(sock5_address *string, username *string, password *string, address *string) {
-	local_address := ":9999"
-	remote_address := ":22"
-	go sock5(sock5_address, username, password)
-	go port_forward(&local_address, remote_address)
-	go nat(":28888")
-	listen, err := net.Listen("tcp", *address)
+func start_reverse_xsocket5_server(address *string) {
+	host, port := parseHostAndPort(address)
+	bind_address := fmt.Sprintf("%s:%s", host, port)
+	log.Printf("[server] listen on:%s\n", bind_address)
+	listen, err := net.Listen("tcp", bind_address)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	log.Printf("listen on %s, socket5 on %s, port_forward on [%s->%s]", *address, *sock5_address, local_address, remote_address)
 	defer listen.Close()
 	for {
 		__conn, err := listen.Accept()

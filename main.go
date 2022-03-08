@@ -3,12 +3,13 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
-	username := ""
-	password := ""
 	sock5_address := ":8888"
+	nat_address := ""
+	port_forward_address := "" //127.0.0.1:9999->127.0.0.1:8080,127.0.0.1:9999->127.0.0.1:8080
 	address := ":5201"
 	is_server_mode := false
 	is_reverse_mode := true
@@ -19,28 +20,30 @@ func main() {
 	}
 
 	for idx, args := range os.Args {
-		if args == "--username" || args == "-U" {
-			username = os.Args[idx+1]
-		}
-
-		if args == "--password" || args == "-P" {
-			username = os.Args[idx+1]
-		}
-
 		if args == "--socks5" || args == "-S" {
-			sock5_address = os.Args[idx+1]
-		}
-
-		if args == "--address" || args == "-A" {
-			address = os.Args[idx+1]
+			if (idx < len(os.Args)-1) && strings.Index(os.Args[idx+1], "-") == -1 {
+				sock5_address = os.Args[idx+1]
+			}
 		}
 
 		if args == "--listen" || args == "-L" {
 			is_server_mode = true
+			if (idx < len(os.Args)-1) && strings.Index(os.Args[idx+1], "-") == -1 {
+				address = os.Args[idx+1]
+			}
 		}
 
-		if args == "--reverse" || args == "-R" {
-			is_reverse_mode = true
+		if args == "--nat" || args == "-N" {
+			if (idx < len(os.Args)-1) && strings.Index(os.Args[idx+1], "-") == -1 {
+				nat_address = os.Args[idx+1]
+			}
+		}
+
+		if args == "--port-forwad" || args == "-P" {
+			is_server_mode = true
+			if (idx < len(os.Args)-1) && strings.Index(os.Args[idx+1], "-") != -1 && strings.Index(os.Args[idx+1], "->") != -1 {
+				port_forward_address = os.Args[idx+1]
+			}
 		}
 	}
 
@@ -48,13 +51,20 @@ func main() {
 		address = os.Args[1]
 	}
 
-	if is_server_mode && !is_reverse_mode {
-		address = os.Args[1]
-	}
-
 	if is_server_mode {
 		if is_reverse_mode {
-			start_reverse_xsocket5_server(&sock5_address, &username, &password, &address)
+			if sock5_address != "" {
+				go socks5_inbound(&sock5_address)
+			}
+
+			if nat_address != "" {
+				go nat_inbound(&nat_address)
+			}
+
+			if port_forward_address != "" {
+				go port_forward_inbound(&port_forward_address)
+			}
+			start_reverse_xsocket5_server(&address)
 		} else {
 			start_xsocket5_server(&address)
 		}
