@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 var connect_count_mutex sync.Mutex
@@ -62,12 +63,14 @@ func wait_for_connect(conn *MyConnect) {
 			mutex.Lock()
 			ready := connect_ready_map[conn._uuid]
 			if ready != nil {
+				connect_map[conn._uuid] = conn
+				if protocal_length != size {
+					conn._reserved_read_data = data[begin+protocal_length : size]
+				}
 				ready <- true
+			} else {
+				conn.Close()
 			}
-			if protocal_length != size {
-				conn._reserved_read_data = data[begin+protocal_length : size]
-			}
-			connect_map[conn._uuid] = conn
 			mutex.Unlock()
 		}
 		return
@@ -86,8 +89,7 @@ func start_reverse_xsocket5_server(address *string) {
 	defer listen.Close()
 	for {
 		__conn, err := listen.Accept()
-		conn := MyConnect{}
-		conn._conn = __conn
+		conn := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		if err != nil {
 			log.Println(err)
 			return

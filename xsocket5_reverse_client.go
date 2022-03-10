@@ -9,8 +9,7 @@ import (
 func start_reverse_xsocket5_client(address *string) {
 	for {
 		__conn, error := net.Dial("tcp", *address)
-		connect := MyConnect{}
-		connect._conn = __conn
+		connect := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		if error != nil {
 			log.Println(error)
 			log.Println("sleep 1 sec to retry")
@@ -29,8 +28,7 @@ func create_proxy_channel(address *string, protocal *XsocktCreateProxyProtocal, 
 	client_chan := make(chan MyConnect)
 	go func() {
 		__conn, err := net.DialTimeout("tcp", *address, connTimeout)
-		connect := MyConnect{}
-		connect._conn = __conn
+		connect := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		connect._uuid = string(protocal._body._uuid)
 		connect._address = *address
 		if err != nil {
@@ -53,8 +51,7 @@ func create_proxy_channel(address *string, protocal *XsocktCreateProxyProtocal, 
 	go func() {
 		log.Printf("[begin]dial to %s", protocal._body._address)
 		__conn, err := net.DialTimeout("tcp", string(protocal._body._address), connTimeout)
-		connect := MyConnect{}
-		connect._conn = __conn
+		connect := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		connect._uuid = string(protocal._body._uuid)
 		connect._address = string(protocal._body._address)
 		if err != nil {

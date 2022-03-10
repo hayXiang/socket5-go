@@ -49,13 +49,23 @@ func getOriginalDestination(c net.Conn) (destination string, newConn net.Conn, e
 	return
 }
 
-func nat_inbound(address *string) {
+func nat_inbound(address *string, sni_mask_name *string) {
 	host, port := parseHostAndPort(address)
+	if host == "127.0.0.1" {
+		host = "0.0.0.0"
+	}
 	bind_address := fmt.Sprintf("%s:%s", host, port)
 	log.Printf("[nat] listen on:%s\n", bind_address)
 	process(&bind_address, func(client *MyConnect) (string, error) {
 		destination, new_connect, _ := getOriginalDestination(client._conn)
 		client._conn = new_connect
 		return destination, nil
-	}, nil, nil)
+	}, nil, func(buffer []byte) []byte {
+		record := Tls_Shake_Record{}
+		if record.Parse(buffer) {
+			record.Modify(sni_mask_name)
+			return record.ToByte()
+		}
+		return nil
+	})
 }

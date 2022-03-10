@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-var SNI_MASK_NAME string = "emby.haycker.com"
-
 func sock5_destination_address(buf []byte) string {
 	var host string
 	switch buf[3] {
@@ -115,7 +113,7 @@ func ParseSocket5Uri(address *string, uri *Socket5Uri) {
 
 }
 
-func socks5_inbound(address *string) {
+func socks5_inbound(address *string, sni_mask_name *string) {
 	uri := Socket5Uri{}
 	ParseSocket5Uri(address, &uri)
 	bind_address := fmt.Sprintf("%s:%s", uri.host, uri.port)
@@ -127,7 +125,7 @@ func socks5_inbound(address *string) {
 	}, func(buffer []byte) []byte {
 		record := Tls_Shake_Record{}
 		if record.Parse(buffer) {
-			record.Modify(&SNI_MASK_NAME)
+			record.Modify(sni_mask_name)
 			return record.ToByte()
 		}
 		return nil

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"log"
 )
 
 var SSL_3_0 = 0x0300
@@ -185,6 +186,7 @@ func (sni_extension *Tls_Shake_Hand_Layer_extension) Modify_sni(new_sni_name []b
 	binary.BigEndian.PutUint16(sni_extension._content[3:5], uint16(changed_length+int(old_sni._length)))
 
 	copy(sni_extension._content[5:], new_sni_name)
+	log.Printf("change sni: %s -> %s", string(old_sni._name), string(new_sni_name))
 	return changed_length
 }
 

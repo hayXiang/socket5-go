@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"time"
 )
 
 func start_xsocket5_server(address *string) {
@@ -15,8 +16,7 @@ func start_xsocket5_server(address *string) {
 
 	for {
 		__conn, con_error := listen.Accept()
-		client := MyConnect{}
-		client._conn = __conn
+		client := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		if con_error != nil {
 			log.Println("error")
 			return
@@ -46,8 +46,7 @@ func start_xsocket5_server(address *string) {
 			dest := sock5_destination_address(buffer[:len])
 			log.Printf("dest %s\n", dest)
 			__conn, err := net.Dial("tcp", dest)
-			server := MyConnect{}
-			server._conn = __conn
+			server := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 			if err != nil {
 				log.Println(err)
 				return

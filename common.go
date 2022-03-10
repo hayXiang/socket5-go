@@ -17,13 +17,12 @@ func process(local_address *string, getRemoteAddress func(client *MyConnect) (st
 	}
 	defer listen.Close()
 	for {
-		__client, _err := listen.Accept()
+		__conn, _err := listen.Accept()
 		if _err != nil {
 			log.Println(_err)
 			return _err
 		}
-		client := MyConnect{}
-		client._conn = __client
+		client := MyConnect{_conn: __conn, _create_time: time.Now().Unix()}
 		go func() {
 			defer client.Close()
 			log.Printf("receive a client request,%s\n", client.ToString())
@@ -67,23 +66,25 @@ func process_connect(address *string, client *MyConnect, onConnectReady func(cli
 		return err
 	}
 	//create remote connect session.
+
 	is_connect_ok := false
 	mutex.Lock()
-	connect_ready_map[uuid] = make(chan bool)
+	connect_ready_map[uuid] = make(chan bool, 1) //NOTE: muset > 1,
 	ready := connect_ready_map[uuid]
-	mutex.Unlock()
 	log.Printf("wait for connect ready, uuid = %s\n", uuid)
+	mutex.Unlock()
 	go func() {
 		time.Sleep(time.Second * time.Duration(3))
+		mutex.Lock()
+		//delete(connect_map, uuid)
+		//delete(connect_ready_map, uuid)
 		if !is_connect_ok {
-			mutex.Lock()
 			ready <- false
-			mutex.Unlock()
-			return
 		}
+		mutex.Unlock()
 	}()
-
 	is_connect_ok = <-ready
+	defer close(ready)
 	if !is_connect_ok {
 		log.Printf("wait for connect timeout,%s", uuid)
 		return errors.New("wait for connect timeout")
@@ -104,10 +105,6 @@ func process_connect(address *string, client *MyConnect, onConnectReady func(cli
 		connect.Close()
 	}()
 	connect.Forward(client, nil)
-	mutex.Lock()
-	delete(connect_map, uuid)
-	delete(connect_ready_map, uuid)
-	mutex.Unlock()
 	return nil
 }
 
