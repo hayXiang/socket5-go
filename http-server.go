@@ -25,7 +25,7 @@ func start_http_server(address *string) {
 		html_content += "<body>"
 		html_content += "<table>"
 		var keys []int
-		for k := range connect_map {
+		for k := range data_connect_map {
 			v, _ := strconv.Atoi(k)
 			keys = append(keys, v)
 		}
@@ -33,7 +33,7 @@ func start_http_server(address *string) {
 		sort.Ints(keys)
 		for i := len(keys) - 1; i >= 0; i-- {
 			html_content += "<tr>"
-			conn := connect_map[fmt.Sprintf("%d", keys[i])]
+			conn := data_connect_map[fmt.Sprintf("%d", keys[i])]
 			html_content += fmt.Sprintf("<td>%s</td>", conn._uuid)
 			html_content += fmt.Sprintf("<td>%s</td>", fmt.Sprintf("%s->%s", conn._conn.LocalAddr().String(), conn._conn.RemoteAddr().String()))
 			html_content += fmt.Sprintf("<td>%s</td>", conn._address)
@@ -61,7 +61,7 @@ func start_http_server(address *string) {
 	go func() {
 		for {
 			time.Sleep(time.Second * 1)
-			for k, v := range connect_map {
+			for k, v := range data_connect_map {
 				if force_quit {
 					return
 				}

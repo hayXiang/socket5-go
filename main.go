@@ -17,7 +17,7 @@ func main() {
 	is_reverse_mode := true
 
 	if len(os.Args) < 2 {
-		log.Println("xsocks5 -L ${address} -S ${socket5_address} -U ${username} -U ${password}")
+		log.Println("xsocks5 -L ${address} -S ${socket5_address}")
 		return
 	}
 

@@ -9,6 +9,21 @@ import (
 	"time"
 )
 
+func get_command_connenct() (*MyConnect, bool) {
+	mutex.Lock()
+	var result *MyConnect = nil
+	for _, v := range cmd_connect_map {
+		if result == nil || v._create_time > result._create_time {
+			result = v
+		}
+	}
+	mutex.Unlock()
+	if result != nil {
+		return result, true
+	}
+	return nil, false
+}
+
 func process(local_address *string, getRemoteAddress func(client *MyConnect) (string, error), onConnectReady func(client *MyConnect), processClientData func([]byte) []byte) error {
 	listen, _err := net.Listen("tcp", *local_address)
 	if _err != nil {
@@ -42,9 +57,7 @@ func process(local_address *string, getRemoteAddress func(client *MyConnect) (st
 
 func process_connect(address *string, client *MyConnect, onConnectReady func(client *MyConnect), processClientData func([]byte) []byte) error {
 	//send host and port to remote
-	mutex.Lock()
-	command_connect, ok := connect_map[XSOCKS_PROTOCAL_UUID_COMMAND]
-	mutex.Unlock()
+	command_connect, ok := get_command_connenct()
 	if !ok {
 		log.Println("no cmd connect")
 		return errors.New("no cmd connect")
@@ -77,7 +90,7 @@ func process_connect(address *string, client *MyConnect, onConnectReady func(cli
 		time.Sleep(time.Second * time.Duration(3))
 		mutex.Lock()
 		//delete(connect_map, uuid)
-		//delete(connect_ready_map, uuid)
+		delete(connect_ready_map, uuid)
 		if !is_connect_ok {
 			ready <- false
 		}
@@ -90,7 +103,7 @@ func process_connect(address *string, client *MyConnect, onConnectReady func(cli
 		return errors.New("wait for connect timeout")
 	}
 	mutex.Lock()
-	connect := connect_map[uuid]
+	connect := data_connect_map[uuid]
 	connect._address = string(protocal._body._address)
 	defer connect.Close()
 	mutex.Unlock()

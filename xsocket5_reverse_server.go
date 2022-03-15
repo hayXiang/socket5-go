@@ -11,7 +11,8 @@ import (
 var connect_count_mutex sync.Mutex
 var connect_count uint32 = 0
 var mutex sync.Mutex
-var connect_map = make(map[string]*MyConnect, 1024)
+var data_connect_map = make(map[string]*MyConnect, 1024)
+var cmd_connect_map = make(map[string]*MyConnect, 1024)
 var connect_ready_map = make(map[string]chan bool, 1024)
 
 func wait_for_connect(conn *MyConnect) {
@@ -40,7 +41,7 @@ func wait_for_connect(conn *MyConnect) {
 
 		if protocal_type == int(XSOCKS_PROTOCAL_TYPE_REGIST) {
 			mutex.Lock()
-			connect_map[XSOCKS_PROTOCAL_UUID_COMMAND] = conn
+			cmd_connect_map[conn._conn.RemoteAddr().String()] = conn
 			mutex.Unlock()
 			go func() {
 				for {
@@ -49,7 +50,7 @@ func wait_for_connect(conn *MyConnect) {
 					if err != nil {
 						log.Printf("cmd connect close,err:%s\n", err)
 						mutex.Lock()
-						delete(connect_map, XSOCKS_PROTOCAL_UUID_COMMAND)
+						delete(cmd_connect_map, conn._conn.RemoteAddr().String())
 						mutex.Unlock()
 						return
 					}
@@ -63,7 +64,7 @@ func wait_for_connect(conn *MyConnect) {
 			mutex.Lock()
 			ready := connect_ready_map[conn._uuid]
 			if ready != nil {
-				connect_map[conn._uuid] = conn
+				data_connect_map[conn._uuid] = conn
 				if protocal_length != size {
 					conn._reserved_read_data = data[begin+protocal_length : size]
 				}
